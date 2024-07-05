@@ -3,6 +3,11 @@
 #include <cmath>
 
 using namespace std;
+//----------------------- ANOTACOES ------------
+// Dado que cada Aresta tem 2 faces,  uma estratégia tratada foi implementar uma
+// estrutura Aresta com cor e visitá-la também, entretanto,  mudando a estrutura de lista encadeada 
+// para matriz de adjacências corrige este problema de ter as arestas em 2 sentidos
+
 
 // Estrutura para representar um nó
 struct Node {
@@ -13,7 +18,7 @@ struct Node {
   int cor; // 0 = branco, 1 = cinza, 2 = preto
 };
 
-struct Aresta { // criada no sentido v1 para v2 //todo
+struct Edge { // criada no sentido v1 para v2 //todo
     //vai ter uma "refletida" de 'v2' para 'v1' pela forma de construção, com a face a ser diferente
     int v2; 
     int cor;
@@ -23,12 +28,14 @@ struct Aresta { // criada no sentido v1 para v2 //todo
 // Função para ler a entrada e construir o grafo
 vector<Node> readGraph(int& N, int& M) {
   vector<Node> graph(N);  // Criar vetor de nós
+  vector<vector<Edge>> edges(N,M); //Aresta sentido v1->v2 e v2->v1
   for (int i = 0; i < N; ++i) {  // Ler as coordenadas e graus dos nós
     cin >> graph[i].x >> graph[i].y >> graph[i].degree;
     for (int j = 0; j < graph[i].degree; ++j) { // Ler os vizinhos dos nós
       int neighbor;
       cin >> neighbor;
       graph[i].neighbors.push_back(neighbor - 1); // Ajustar índices para 0-based
+      edge[i][j].v2.push_back(
     }
     graph[i].cor = 0; // define a cor de todos como branca
   }
@@ -51,7 +58,7 @@ void printGraph(const vector<Node>& graph) {
 
 int main() {
   // Ler o grafo da entrada
-  int N, M;
+  int N, M; //N vertices e M arestas
   cin >> N >> M;
   vector<Node> graph = readGraph(N, M);
   printGraph(graph);
@@ -61,3 +68,4 @@ int main() {
   return 0;
 }
  
+    
