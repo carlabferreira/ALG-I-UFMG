@@ -10,6 +10,8 @@
 //              2024-06-25 - mudança (volta) de matriz para lista de adjacencia, sem estrutura node com ponteiros
 //              2024-07-01 - junção dos arquivos .hpp e .cpp auxiliares em um só - tp1.cpp devido ao formato de entrega no moodle
 //              2024-07-06 - edicoes em LeGrafo e adições de tratamento de excecoes com return (-1) na main
+//              2024-07-07 - adicao da ordem de visita e testes com exemplos do enunciado
+//              2024-07-07 - edicao na estrutura e funcionamento de DFS
 //---------------------------------------------------------------------
 
 
@@ -24,9 +26,10 @@ using namespace std;
 void LeGrafo(int N, int M, vector<vector<int>>& grafo, vector<pair<double, double>>& coordenadas, vector<vector<bool>>& visitado);
 void SeparaPontes(int N, vector<vector<int>> grafo, vector<int>& pontosArticulacao, vector<int>& naoPontosArticulacao);
 void EhPonte (int N, vector<vector<int>>& grafo, vector<bool>& v);
-double InclinacaoRelativa(double x1, double x2, double y1, double y2); //Modificada da dada no enunciado
-vector<int> PosicoesRelativasOrdenadas (int i, vector<int>& connections, vector<pair<double, double>> pos);//organiza as conexões de cada vértice em ordem crescente de inclinação relativa em relação ao vértice de referência
-
+double InclinacaoRelativa(double x1, double y1, double x2, double y2); //Modificada da dada no enunciado
+vector<int> OrdenacaoPorPosicoesRelativas  (int i, vector<int>& connections, vector<pair<double, double>> pos);//organiza as conexões de cada vértice em ordem crescente de inclinação relativa em relação ao vértice de referência
+void DFS(int limite, int i, int j, int verticeAtual, vector<vector<int>>& grafo, vector<vector<bool>>& visitado, vector<pair<double, double>>& positions, vector<int>& face, vector<vector<int>>& faces);
+void PrintaFaces(vector<vector<int>> faces);
 
 void PrintaGrafo_Vizinhos (int N, vector<vector<int>>& grafo);
 void PrintaGrafo_Coordenadas (int N, vector<pair<double, double>>& coordenadas);
@@ -38,7 +41,7 @@ int main() {
 
   // DEFINIÇÃO DAS ESTRUTURAS PARA REPRESENTAR O GRAFO
   vector<vector<int>> grafo(N);
-  vector<vector<bool>> visitado(N);
+  vector<vector<bool>> visitado(N); // Semelhante a cor na implementação padrao de DFS
   vector<pair<double, double>> coordenadas(N); 
   
   // ------------- PARTE 1 - LEITURA DO GRAFO  ------------- 
@@ -73,9 +76,11 @@ int main() {
   SeparaPontes(N, grafo, pontosArticulacao, naoPontosArticulacao);
 
   //Se todos os vertices são pontes então o grafo é uma arvore e so possui uma face
+  //Se Arestas = Vertices -1 tbm é arvore
   if (pontosArticulacao.size() == N) {  
-    //todo
+    cout << "Eh uma arvore" << endl; //todo
   }
+  if (M == (N-1)) cout << "Eh uma arvore 2" << endl; //todo
 
   // Se algum vertice faltando, erro ao identificar pontes
   if (pontosArticulacao.size() + naoPontosArticulacao.size() != N) return(-1);
@@ -94,17 +99,27 @@ int main() {
   vector<int> ordemVisita;
   for (int vertice : naoPontosArticulacao) ordemVisita.push_back(vertice);
   for (int vertice : pontosArticulacao) ordemVisita.push_back(vertice);
+  //for (int i = 0; i < N; i++) ordemVisita.push_back(i);
 
   // for (int i = 0; i < N; i++) cout << ordemVisita[i] << ' ';
-
+  // Para cada vertice v, ordena seus adjacentes (na lista de adj) de acordo com a inclinação com v inicial
+  for(int i = 0; i < N; i++) grafo[i] = OrdenacaoPorPosicoesRelativas(i, grafo[i], coordenadas);
 
   // ------------- PARTE 3 - VISTITA DOS VERTICES E UTILIZACAO DE DFS PARA IDENTIFICAR FACES -------------
+  vector<int> face;
+  vector<vector<int>> faces;
 
-
-
+  for(int i = 0; i < visitado.size(); i++){
+    for(int j = 0; j < visitado[ordemVisita[i]].size(); j++){
+      if(!visitado[ordemVisita[i]][j]) {
+        face.push_back(ordemVisita[i]);
+        DFS(ordemVisita[i], ordemVisita[i], j, grafo[ordemVisita[i]][j], grafo, visitado, coordenadas, face, faces);
+      }
+    }
+  }
 
   // ------------- PARTE 4 - FINALIZAÇÃO E EXIBIÇÃO DAS FACES
-  
+  PrintaFaces(faces);
   
   // -------------
   // PrintaGrafo_Vizinhos(N, grafo);
@@ -171,36 +186,120 @@ void SeparaPontes(int N, vector<vector<int>> grafo, vector<int>& pontosArticulac
 }
 
 void EhPonte (int k, vector<vector<int>>& grafo, vector<bool>& cor){
-    cor[k] = true;  // Marca o nó atual como visitado
-    // Itera sobre todos os vizinhos do nó atual
-    for (auto vizinho : grafo[k]) {
-        // Se o vizinho ainda não foi visitado, chama a função recursivamente
-        if (cor[vizinho] == false) {
-            EhPonte(vizinho, grafo, cor);
-        }
+  cor[k] = true;  // Marca o nó atual como visitado
+  // Itera sobre todos os vizinhos do nó atual
+  for (auto vizinho : grafo[k]) {
+    // Se o vizinho ainda não foi visitado, chama a função recursivamente
+    if (cor[vizinho] == false) {
+        EhPonte(vizinho, grafo, cor);
     }
+  }
 }
 
-double InclinacaoRelativa(double x1, double x2, double y1, double y2){
+double InclinacaoRelativa(double x1, double y1, double x2, double y2){
   return atan2(y1 - y2, x1 - x2);
 }
 
-vector<int> PosicoesRelativasOrdenadas (int i, vector<int>& connections, vector<pair<double, double>> pos){
-  double x_ref = pos[i].first;
-    double y_ref = pos[i].second;
-    sort(connections.begin(), connections.end(), [&](double a, double b) {
-        double incl_a = InclinacaoRelativa(pos[a].first, x_ref, pos[a].second, y_ref);
-        double incl_b = InclinacaoRelativa(pos[b].first, x_ref, pos[b].second, y_ref);
+// Para cada vertice v, ordena seus adjacentes (na lista de adj) de acordo com a inclinação com v inicial
+vector<int> OrdenacaoPorPosicoesRelativas (int i, vector<int>& vizinhos, vector<pair<double, double>> coordenadas){
+  double x_ref = coordenadas[i].first;
+  double y_ref = coordenadas[i].second;
+  sort( vizinhos.begin(), vizinhos.end(), [&](double a, double b) {
+        double incl_a = InclinacaoRelativa(coordenadas[a].first, coordenadas[a].second, x_ref, y_ref);
+        double incl_b = InclinacaoRelativa(coordenadas[b].first, coordenadas[b].second, x_ref, y_ref);
         return incl_a < incl_b;
-    });
+      }
+  );
 
-    return connections;
+    return vizinhos;
+}
+
+// Função para ordenar os vizinhos usando Bubble Sort
+/*vector<int> OrdenacaoPorPosicoesRelativas(int i, vector<int>& vizinhos, vector<pair<double, double>> coordenadas) {
+    double x_ref = coordenadas[i].first;
+    double y_ref = coordenadas[i].second;
+
+    int n = vizinhos.size();
+    for (int j = 0; j < n - 1; j++) {
+        for (int k = 0; k < n - j - 1; k++) {
+            double incl_a = InclinacaoRelativa(coordenadas[vizinhos[k]].first, coordenadas[vizinhos[k]].second, x_ref, y_ref);
+            double incl_b = InclinacaoRelativa(coordenadas[vizinhos[k + 1]].first, coordenadas[vizinhos[k + 1]].second, x_ref, y_ref);
+            if (incl_a > incl_b) {
+                swap(vizinhos[k], vizinhos[k + 1]);
+            }
+        }
+    }
+
+    return vizinhos;
+}*/
+
+// Função para ordenar os vizinhos usando Insertion Sort
+/*vector<int> OrdenacaoPorPosicoesRelativas(int i, vector<int>& vizinhos, vector<pair<double, double>> coordenadas) {
+    double x_ref = coordenadas[i].first;
+    double y_ref = coordenadas[i].second;
+
+    int n = vizinhos.size();
+    for (int j = 1; j < n; j++) {
+        int key = vizinhos[j];
+        double incl_key = InclinacaoRelativa(coordenadas[key].first, coordenadas[key].second, x_ref, y_ref);
+        int k = j - 1;
+
+        while (k >= 0) {
+            double incl_k = InclinacaoRelativa(coordenadas[vizinhos[k]].first, coordenadas[vizinhos[k]].second, x_ref, y_ref);
+            if (incl_key >= incl_k) {
+                break;
+            }
+            vizinhos[k + 1] = vizinhos[k];
+            k--;
+        }
+        vizinhos[k + 1] = key;
+    }
+
+    return vizinhos;
+}*/
+
+void DFS(int limite, int i, int j, int verticeAtual, vector<vector<int>>& grafo, vector<vector<bool>>& visitado, vector<pair<double, double>>& positions, vector<int>& face, vector<vector<int>>& faces){
+  visitado[i][j] = true;
+
+  if (limite == verticeAtual) {
+      face.push_back(limite);
+      faces.push_back(face); // termina aquela face e coloca em faceS
+      face.clear(); // zera o vetor de face par ir para a proxima face
+      return; 
+  }
+
+  int prox = 0;
+  // Encontra o próximo índice (prox) a ser visitado.
+  // Percorre a lista de adjacências do vértice verticeAtual até encontrar a próxima conexão não visitada.
+  while (prox < grafo[verticeAtual].size()) {
+    if (grafo[verticeAtual][prox] == i) {
+      prox++; 
+      break;
+    }
+    prox++;
+  }
+
+  // continua a buscar o próximo vértice k não visitado na lista de adjacências do verticeAtual
+  for(; prox <= grafo[verticeAtual].size(); prox++){
+      if(prox == grafo[verticeAtual].size()) prox = 0;
+      if(visitado[verticeAtual][prox] == false) break;
+  }
+
+  face.push_back(verticeAtual);
+  DFS(limite, verticeAtual, prox, grafo[verticeAtual][prox], grafo, visitado, positions, face, faces);
+
 }
 
 
-
-
-
+void PrintaFaces(vector<vector<int>> faces){
+    cout << faces.size() << endl;
+    for(int i = 0; i < faces.size(); i++){
+        cout << faces[i].size() << " ";
+        for(int j = 0;  j < faces[i].size(); j++) 
+          cout << faces[i][j]+1 << " "; // +1 pois é construido baseado em começar do zero
+        cout << endl;
+    }
+}
 
 
 
