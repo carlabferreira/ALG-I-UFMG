@@ -27,9 +27,13 @@ void LeGrafo(int N, int M, vector<vector<int>>& grafo, vector<pair<double, doubl
 void SeparaPontes(int N, vector<vector<int>> grafo, vector<int>& pontosArticulacao, vector<int>& naoPontosArticulacao);
 void EhPonte (int N, vector<vector<int>>& grafo, vector<bool>& v);
 double InclinacaoRelativa(double x1, double y1, double x2, double y2); //Modificada da dada no enunciado
-vector<int> OrdenacaoPorPosicoesRelativas  (int i, vector<int>& connections, vector<pair<double, double>> pos);//organiza as conexões de cada vértice em ordem crescente de inclinação relativa em relação ao vértice de referência
-void DFS(int limite, int i, int j, int verticeAtual, vector<vector<int>>& grafo, vector<vector<bool>>& visitado, vector<pair<double, double>>& positions, vector<int>& face, vector<vector<int>>& faces);
+vector<int> OrdenacaoPorPosicoesRelativas (int i, vector<int>& vizinhos, vector<pair<double, double>> coordenadas);//organiza as conexões de cada vértice em ordem crescente de inclinação relativa em relação ao vértice de referência
+void DFS(int limite, int i, int j, int verticeAtual, vector<vector<int>>& grafo, vector<vector<bool>>& visitado, vector<int>& face, vector<vector<int>>& faces);
 void PrintaFaces(vector<vector<int>> faces);
+void FaceUnica(int N, vector<vector<int>>& grafo, vector<pair<double, double>>& coordenadas, vector<vector<bool>>& visitado);
+
+void dfs_arvore(int node, vector<vector<int>>& tree, vector<bool>& visited, vector<int>& path);
+void printPath(const vector<int>& path);
 
 void PrintaGrafo_Vizinhos (int N, vector<vector<int>>& grafo);
 void PrintaGrafo_Coordenadas (int N, vector<pair<double, double>>& coordenadas);
@@ -55,11 +59,13 @@ int main() {
   // É garantido que o grafo é conexo, N >= 1 e que um vertice não é vizinho de si mesmo, 
   // mas não é garantido que não é uma arvore/grafosem ciclos
   if (N <= 2){ // Se 2 ou menos vertices então só tem uma face
-    cout << 1 << ' ' << 1 << ' ';
-    for (int j = 0; j < grafo[0].size(); j++){
-      cout << grafo[0][j] + 1 << ' ';
-    }
-    cout << 1 << endl;
+    // cout << 1 << endl << grafo[0].size()+1 << ' ';
+    // for (int j = 0; j < grafo[0].size(); j++){
+    //   cout << grafo[0][j] + 1 << ' ';
+    // }
+    // cout << 1 << endl;
+    // return 0;
+    FaceUnica(N, grafo, coordenadas, visitado);
     return 0;
   }
 
@@ -73,14 +79,21 @@ int main() {
 
   // DEFINIÇÃO DOS VETORES UTILIZADOS PARA DFS E IDENTIFICAÇÃO DAS FACES
   vector<int> pontosArticulacao, naoPontosArticulacao;
+  if (M == (N-1)) {
+    FaceUnica(N, grafo, coordenadas, visitado);
+    return 0;
+  }
+  
   SeparaPontes(N, grafo, pontosArticulacao, naoPontosArticulacao);
 
-  //Se todos os vertices são pontes então o grafo é uma arvore e so possui uma face
-  //Se Arestas = Vertices -1 tbm é arvore
+  // Se todos os vertices são pontes então o grafo é uma arvore e so possui uma face
+  // Se Arestas = Vertices -1 tbm é arvore
+  // Se arvore, todas as arestas sao pontes (e todos os vertices internos(não folhas) sao pontos de articulaçao)
   if (pontosArticulacao.size() == N) {  
-    cout << "Eh uma arvore" << endl; //todo
+    FaceUnica(N, grafo, coordenadas, visitado);
+    return 0;
   }
-  if (M == (N-1)) cout << "Eh uma arvore 2" << endl; //todo
+  
 
   // Se algum vertice faltando, erro ao identificar pontes
   if (pontosArticulacao.size() + naoPontosArticulacao.size() != N) return(-1);
@@ -113,7 +126,7 @@ int main() {
     for(int j = 0; j < visitado[ordemVisita[i]].size(); j++){
       if(!visitado[ordemVisita[i]][j]) {
         face.push_back(ordemVisita[i]);
-        DFS(ordemVisita[i], ordemVisita[i], j, grafo[ordemVisita[i]][j], grafo, visitado, coordenadas, face, faces);
+        DFS(ordemVisita[i], ordemVisita[i], j, grafo[ordemVisita[i]][j], grafo, visitado, face, faces);
       }
     }
   }
@@ -258,9 +271,9 @@ vector<int> OrdenacaoPorPosicoesRelativas (int i, vector<int>& vizinhos, vector<
     return vizinhos;
 }*/
 
-void DFS(int limite, int i, int j, int verticeAtual, vector<vector<int>>& grafo, vector<vector<bool>>& visitado, vector<pair<double, double>>& positions, vector<int>& face, vector<vector<int>>& faces){
+void DFS(int limite, int i, int j, int verticeAtual, vector<vector<int>>& grafo, vector<vector<bool>>& visitado, vector<int>& face, vector<vector<int>>& faces){
   visitado[i][j] = true;
-
+  //cout << "em dfs" << endl;
   if (limite == verticeAtual) {
       face.push_back(limite);
       faces.push_back(face); // termina aquela face e coloca em faceS
@@ -286,7 +299,7 @@ void DFS(int limite, int i, int j, int verticeAtual, vector<vector<int>>& grafo,
   }
 
   face.push_back(verticeAtual);
-  DFS(limite, verticeAtual, prox, grafo[verticeAtual][prox], grafo, visitado, positions, face, faces);
+  DFS(limite, verticeAtual, prox, grafo[verticeAtual][prox], grafo, visitado, face, faces);
 
 }
 
@@ -301,7 +314,57 @@ void PrintaFaces(vector<vector<int>> faces){
     }
 }
 
+void FaceUnica(int N, vector<vector<int>>& grafo, vector<pair<double, double>>& coordenadas, vector<vector<bool>>& visitado){
+  //cout << 1 << endl << N << ' ';
+  
+  vector<int> ordemVisita;
+  for (int i = 0; i < grafo[0].size(); i++) ordemVisita.push_back(i);
 
+  for(int i = 0; i < N; i++) grafo[i] = OrdenacaoPorPosicoesRelativas(i, grafo[i], coordenadas);
+
+  
+
+  // Vetor para marcar nós visitados durante o DFS
+  vector<bool> visited(N, false);
+  // Vetor para armazenar o caminho encontrado durante o DFS
+  vector<int> path;
+
+  // Chamando DFS a partir do nó raiz 0 (pode ser qualquer nó na árvore)
+  dfs_arvore(0, grafo, visited, path);
+  printPath(path);
+}
+
+
+// Função DFS recursiva para percorrer a árvore e obter o caminho
+void dfs_arvore(int node, vector<vector<int>>& tree, vector<bool>& visited, vector<int>& path) {
+    visited[node] = true;
+    path.push_back(node);
+
+    // Verifica se o nó atual é uma folha (sem vizinhos além do pai)
+    if (tree[node].size() == 1 && visited[tree[node][0]]) {
+        // Adiciona o pai novamente ao caminho
+        path.push_back(tree[node][0]);
+    }
+
+    for (int neighbor : tree[node]) {
+        if (!visited[neighbor]) {
+            dfs_arvore(neighbor, tree, visited, path);
+            // Após retornar da recursão, se o nó vizinho for uma folha, adiciona o pai novamente
+            if (path.back() == neighbor) {
+                path.push_back(node);
+            }
+        }
+    }
+}
+
+// Função para imprimir o caminho encontrado
+void printPath(const vector<int>& path) {
+  cout << 1 << endl << path.size() << ' ';
+    for (int node : path) {
+        cout << node+1 << " ";
+    }
+    cout << endl;
+}
 
 
 void PrintaGrafo_Vizinhos (int N, vector<vector<int>>& grafo){
