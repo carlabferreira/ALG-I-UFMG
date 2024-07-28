@@ -1,6 +1,6 @@
 //---------------------------------------------------------------------
-// Arquivo	: tp1.cpp
-// Conteudo	: implementacao do TP1
+// Arquivo	: tp2.cpp
+// Conteudo	: implementacao do TP2
 // Autor	: Carla Beatriz Ferreira (2022097470)
 // Historico:   2023-05-11 - arquivo criado
 //              2024-05-12 - estruturação da estrutura dos vertices - vilas
