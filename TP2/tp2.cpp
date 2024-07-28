@@ -12,6 +12,7 @@
 #include <iostream>
 #include <vector>
 #include <set>
+#include <queue>
 #include <cmath>   
 using namespace std;
 
@@ -24,18 +25,21 @@ typedef struct CaminhoDeVilasFormadoPorArestas {
 } vila;
 
 // DEFINICAO DAS FUNCOES UTILIZADAS
-void LeGrafo(int N, int M, vector<vector<vila>> &grafo);
-
+void LeGrafo(long long int N, long long int M, vector<vector<vila>> &grafo, vector<long long int> &anos);
+void MenorAnoConectavel_BFS(vector<vector<vila>> &grafo, long long int N, long long int &a2, vector<long long int> anos);
+void BFS(vector<vector<vila>> &grafo, vector<bool> &visitado, long long int inicio, long long int final);
 
 int main (){
+    // DEFINIÇÃO DAS VARIAVEIS
     long long int N, M;
     cin >> N >> M; // N vertices M arestas
-    // DEFINIÇÃO DAS ESTRUTURAS PARA REPRESENTAR O GRAFO
+
     vector<vector<vila>> grafo(N);
-
-
+    vector<long long int> anos;
+    
+    
     // ------------- PARTE 1 - LEITURA DO GRAFO  -------------
-    LeGrafo(N, M, grafo);
+    LeGrafo(N, M, grafo, anos);
 
     if (grafo.size() != N){
         cout << "Erro na leitura do grafo";
@@ -51,11 +55,14 @@ int main (){
     }
 
     // ------------- PARTE 2 - DFS PARA ACHAR ANOS A1 E A2  -------------
-    // Do enunciad0: A1 (...) representa o primeiro ano no qual as distâncias listadas nas linha anteriores são mutuamente realizáveis
+    // Do enunciad0: A1 (...) representa o primeiro ano no qual as distâncias listadas nas linha anteriores são mutuamente realizáveis (passado em dijkstra)
     //               A2 (...) representa o primeiro ano a partir do qual é possível chegar em qualquer vila do reino a partir do palácio real.
     
-    //todo
+    long long int a1 = 0, a2 = 0;
 
+    // Realiza uma busca binária para encontrar o menor ano a partir do qual o grafo se torna conectado
+    // Modifica a2 passada por referência
+    MenorAnoConectavel_BFS(grafo, N, a2, anos);
 
     // ------------- PARTE 3 - DIJKSTRA PARA ACHAR DISTANCIA MINIMA DO PALACIO PARA OUTRA VILA -------------
   
@@ -70,11 +77,11 @@ int main (){
     return 0;
 }
 
-void LeGrafo(int N, int M, vector<vector<vila>> &grafo){
+void LeGrafo(long long int N, long long int M, vector<vector<vila>> &grafo, vector<long long int> &anos){
     long long int u, v, a, l, c;
     vila v1, v2; // Para criar as arestas nas duas direções no grafo
     set<long long int> conjuntoDeAnos; // set e nao vector pois conjuntos não tem elementos repetidos
-    vector<long long int> anos;
+    
     for (int i =0; i < M; i++){
         cin >> u >> v >> a >> l >> c;
         u--; //0-based
@@ -94,13 +101,64 @@ void LeGrafo(int N, int M, vector<vector<vila>> &grafo){
         grafo[v].push_back(v2);
         conjuntoDeAnos.insert(a);
     }
-
+    
     // Mudança de anos em um conjunto para um vetor
     for (auto it = conjuntoDeAnos.begin(); it != conjuntoDeAnos.end(); ++it) {
         anos.push_back(*it);
     }
 
     //?
-    //cout << "grafo[4][0].outroNO = "<< grafo[3][0].outroNoDaAresta+1 <<  " e grafo[4][0].custo = " << grafo[3][0].custoConstrucao << endl;
-    //cout << "grafo[4][1].outroNO = "<< grafo[3][1].outroNoDaAresta+1 <<  " e grafo[4][1].custo = " << grafo[3][1].custoConstrucao << endl;
+    // cout << "grafo[4][0].outroNO = "<< grafo[3][0].outroNoDaAresta+1 <<  " e grafo[4][0].custo = " << grafo[3][0].custoConstrucao << endl;
+    // cout << "grafo[4][1].outroNO = "<< grafo[3][1].outroNoDaAresta+1 <<  " e grafo[4][1].custo = " << grafo[3][1].custoConstrucao << endl;
+}
+
+void MenorAnoConectavel_BFS(vector<vector<vila>> &grafo, long long int N, long long int &a2, vector<long long int> anos){
+    long long int esq = 0;
+    long long int dir = anos.size() - 1;
+
+    while (esq <= dir){
+        long long int count = 0;
+        long long int meio = esq + (dir - esq)/2;
+        long long int anoAtual = anos[meio];
+        vector<bool> visitado(N, false);
+
+        for(long long int j = 0; j < N; j++) { // Itera sobre todos os nós do grafo
+        // Se o nó não foi visitado, inicia uma DFS a partir dele
+            if (!visitado[j]) {
+                if (count == 2) break;
+                
+                // Executa DFS no grafo, marcando componentes conexas
+                BFS(grafo, visitado, j, anoAtual);
+                count++;
+            }
+        }
+
+        // Verifica se o grafo é uma única componente conexa
+        if (count == 1) {
+            a2 = anoAtual;  // Atualiza n2 com o ano em que o grafo é conectado
+            dir = meio - 1;  // Continua a busca binária na metade inferior
+        } else {
+            esq = meio + 1;  // Continua a busca binária na metade superior
+        }
+    }
+}
+
+void BFS(vector<vector<vila>>& graph, vector<bool>& visitado, long long int inicio, long long int final) {
+    queue<long long int> fila;
+    fila.push(inicio);
+    visitado[inicio] = true;
+
+    while (!fila.empty()) {
+        long long int atual = fila.front();
+        fila.pop();
+
+        for (const vila& noVizinho : graph[atual]) {
+            // Para cada uma das vilas conectados a aquele vertice atual
+            // Proucura por arestas que não foram percorridas && construidas até aquele ano
+            if (!visitado[noVizinho.outroNoDaAresta] && noVizinho.anoFinalConstrucao <= final) {
+                visitado[noVizinho.outroNoDaAresta] = true;
+                fila.push(noVizinho.outroNoDaAresta);
+            }
+        }
+    }
 }
