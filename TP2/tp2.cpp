@@ -7,16 +7,24 @@
 //              2024-06-30 - mudança do tipo de representacao de estrutura do grafo 
 //              2024-07-07 - mudança para grafo com lista de adjacencia e vector<vector<>> assim como tp1
 //              2024-07-10 - Implementação de LeGrafo, baseada no tp1.cpp e mudanças de acordo com enunciado do tp2
-//---------------------------------------------------------------------
+//              2024-07-15 - Implementação de MenorAnoConcetavel utilizando DFS, utilizando de base o tp1
+//              2024-07-20 - Mudança de MenorAnoConcetavel utilizando BFS, considerado mais apropriado para este problema do tp2
+//              2024-07-27 - Implementação do algoritmo de Dijkstra para tempo minimo, sem muitas modificaçãoes do conhecido algoritmo
+//              2024-07-30 - Finalização do algoritmo de Arvore Geradora de Custo Minimo de Prim, sem muitas modificaçãoes do conhecido algoritmo
+//              2024-07-31 - Organização para saída apropriada de acrodo com enunciado e testes no VPL do moodle
+//              2024-07-31 - Remoção de (alguns) comentarios desnecessários e correção de tabulação
+//----------------------------------------------------------------------
 
 #include <iostream>
 #include <vector>
 #include <set>
 #include <queue>
-#include <cmath>   
+#include <cmath>
+#include <climits> // Necessário para LLONG_MAX
+
 using namespace std;
 
-// DEFINICAO DAS ESTRUTURAS DE DADOS UTILIZADAS
+// DEFINICAO DAS ESTRUTURAS DE DADOS E LIMITES UTILIZADOS
 typedef struct CaminhoDeVilasFormadoPorArestas {
     long long int outroNoDaAresta;
     long long int anoFinalConstrucao;
@@ -24,10 +32,15 @@ typedef struct CaminhoDeVilasFormadoPorArestas {
     long long int custoConstrucao;
 } vila;
 
+const long long int LINF = LLONG_MAX;
+
 // DEFINICAO DAS FUNCOES UTILIZADAS
 void LeGrafo(long long int N, long long int M, vector<vector<vila>> &grafo, vector<long long int> &anos);
 void MenorAnoConectavel_BFS(vector<vector<vila>> &grafo, long long int N, long long int &a2, vector<long long int> anos);
 void BFS(vector<vector<vila>> &grafo, vector<bool> &visitado, long long int inicio, long long int final);
+void Dijkstra(vector<vector<vila>>& grafo, long long int &a1, vector<long long int> &tempoMinimoVilaPalacio);
+void MST_Prim(vector<vector<vila>> &grafo, long long int &custoMinimoConectar);
+void printaVetorTempoMinimo(vector<long long int> tempoMinimoVilaPalacio);
 
 int main (){
     // DEFINIÇÃO DAS VARIAVEIS
@@ -47,32 +60,27 @@ int main (){
         return (-1);
     }
 
-    // É garantido que o grafo é conexo, N >= 1
-    // mas não é garantido que não é uma arvore/grafo sem ciclos
-    if (M == N-1){ // quantidade de arestas é quantidade de vertices -1 = arvore  //todo
-        // todo
-        return 0;
-    }
-
     // ------------- PARTE 2 - DFS PARA ACHAR ANOS A1 E A2  -------------
     // Do enunciad0: A1 (...) representa o primeiro ano no qual as distâncias listadas nas linha anteriores são mutuamente realizáveis (passado em dijkstra)
     //               A2 (...) representa o primeiro ano a partir do qual é possível chegar em qualquer vila do reino a partir do palácio real.
-    
     long long int a1 = 0, a2 = 0;
 
     // Realiza uma busca binária para encontrar o menor ano a partir do qual o grafo se torna conectado
     // Modifica a2 passada por referência
     MenorAnoConectavel_BFS(grafo, N, a2, anos);
 
-    // ------------- PARTE 3 - DIJKSTRA PARA ACHAR DISTANCIA MINIMA DO PALACIO PARA OUTRA VILA -------------
-  
-    //todo
+    // ------------- PARTE 3 - DIJKSTRA PARA ACHAR TEMPO MINIMA DO PALACIO PARA OUTRA VILA (A1 e primeiras N saidas) -------------
+    vector<long long int> tempoMinimoVilaPalacio(N, LINF);
+    Dijkstra(grafo, a1, tempoMinimoVilaPalacio);
     
 
     // ------------- PARTE 4 - ARVORE MINIMA DE CUSTOS - PRIM
-  
-    //todo
+    long long int custoMinimoConectar;
+    MST_Prim(grafo, custoMinimoConectar);
 
+    // ------------- PARTE 5 - FINALIZAÇÃO E IMPRENSSÃO DAS SAÍDAS CONFORME ENUNCIADO ------------- 
+    printaVetorTempoMinimo(tempoMinimoVilaPalacio);
+    cout << a1 << endl << a2 << endl << custoMinimoConectar << endl;
     
     return 0;
 }
@@ -106,10 +114,6 @@ void LeGrafo(long long int N, long long int M, vector<vector<vila>> &grafo, vect
     for (auto it = conjuntoDeAnos.begin(); it != conjuntoDeAnos.end(); ++it) {
         anos.push_back(*it);
     }
-
-    //?
-    // cout << "grafo[4][0].outroNO = "<< grafo[3][0].outroNoDaAresta+1 <<  " e grafo[4][0].custo = " << grafo[3][0].custoConstrucao << endl;
-    // cout << "grafo[4][1].outroNO = "<< grafo[3][1].outroNoDaAresta+1 <<  " e grafo[4][1].custo = " << grafo[3][1].custoConstrucao << endl;
 }
 
 void MenorAnoConectavel_BFS(vector<vector<vila>> &grafo, long long int N, long long int &a2, vector<long long int> anos){
@@ -122,8 +126,7 @@ void MenorAnoConectavel_BFS(vector<vector<vila>> &grafo, long long int N, long l
         long long int anoAtual = anos[meio];
         vector<bool> visitado(N, false);
 
-        for(long long int j = 0; j < N; j++) { // Itera sobre todos os nós do grafo
-        // Se o nó não foi visitado, inicia uma DFS a partir dele
+        for(long long int j = 0; j < N; j++) { // Itera sobre todos os nós do grafo, se o nó não foi visitado, inicia uma DFS a partir dele
             if (!visitado[j]) {
                 if (count == 2) break;
                 
@@ -162,3 +165,72 @@ void BFS(vector<vector<vila>>& graph, vector<bool>& visitado, long long int inic
         }
     }
 }
+
+void Dijkstra(vector<vector<vila>>& grafo, long long int &a1, vector<long long int> &tempoMinimoVilaPalacio){
+    priority_queue<pair<long long int, long long int>> filaPrioridade;
+
+    vector<long long int> anos(grafo.size(), LINF);
+    anos[0] = 0;
+
+    filaPrioridade.push(make_pair(0, 0));
+    tempoMinimoVilaPalacio[0] = 0;
+
+    while(!filaPrioridade.empty()){
+        long long int atual = filaPrioridade.top().second;
+        filaPrioridade.pop();
+        for(vila x: grafo[atual]){
+            long long int v = x.outroNoDaAresta;
+            long long int w = x.tempoTravessia;
+            if(tempoMinimoVilaPalacio[v] > tempoMinimoVilaPalacio[atual] + w){ // Verifica se tem um tempo de travessia menor para os vertice percorridos
+                tempoMinimoVilaPalacio[v] = tempoMinimoVilaPalacio[atual] + w;
+                filaPrioridade.push(make_pair(-tempoMinimoVilaPalacio[v], v));
+                anos[v] = x.anoFinalConstrucao;
+            }
+        }
+    }
+
+    // "A1 (...) representa o primeiro ano no qual as distâncias listadas nas linha anteriores são mutuamente realizáveis"
+    for(auto a: anos) a1 = max(a1, a);
+    
+}
+
+void MST_Prim(vector<vector<vila>> &grafo, long long int &custoMinimoConectar){
+    custoMinimoConectar = 0;
+    vector<bool> visitado(grafo.size(), false);
+    vector<vector<pair<long long int, long long int>>> ListaCustoEOutroVertice(grafo.size());
+    
+    for(long long int i = 0; i < grafo.size(); i++){
+        for(long long int j = 0; j < grafo[i].size(); j++){
+            ListaCustoEOutroVertice[i].push_back(make_pair(grafo[i][j].custoConstrucao, grafo[i][j].outroNoDaAresta));
+        }
+    }
+
+    priority_queue<pair<long long int, long long int>, vector<pair<long long int, long long int>>, greater<pair<long long int, long long int>>> filaPrioridade;
+    filaPrioridade.push({0, 0});
+    while(!filaPrioridade.empty()){
+        auto p = filaPrioridade.top(); 
+        filaPrioridade.pop();
+
+        long long int custoAtual = p.first;
+        long long int verticeAdjacente = p.second;
+
+        if(visitado[verticeAdjacente]) continue;
+
+        custoMinimoConectar += custoAtual;
+        visitado[verticeAdjacente] = true;
+
+        for(auto v: ListaCustoEOutroVertice[verticeAdjacente]){
+            if(!visitado[v.second]){
+                filaPrioridade.push(v);
+            }
+        }
+    }
+
+}
+
+void printaVetorTempoMinimo(vector<long long int> tempoMinimoVilaPalacio){
+    for(long long int i = 0; i < tempoMinimoVilaPalacio.size(); i++){
+        cout << tempoMinimoVilaPalacio[i] << endl;
+    }
+}
+
