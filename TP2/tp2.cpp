@@ -43,45 +43,49 @@ void MST_Prim(vector<vector<vila>> &grafo, long long int &custoMinimoConectar);
 void printaVetorTempoMinimo(vector<long long int> tempoMinimoVilaPalacio);
 
 int main (){
-    // DEFINIÇÃO DAS VARIAVEIS
-    long long int N, M;
-    cin >> N >> M; // N vertices M arestas
+    try {
+        // DEFINIÇÃO DAS VARIAVEIS    
+        long long int N, M;
+        cin >> N >> M; // N vertices M arestas
 
-    vector<vector<vila>> grafo(N);
-    vector<long long int> anos;
-    
-    
-    // ------------- PARTE 1 - LEITURA DO GRAFO  -------------
-    LeGrafo(N, M, grafo, anos);
+        vector<vector<vila>> grafo(N);
+        vector<long long int> anos;
+        
+        
+        // ------------- PARTE 1 - LEITURA DO GRAFO  -------------
+        LeGrafo(N, M, grafo, anos);
 
-    if (grafo.size() != N){
-        cout << "Erro na leitura do grafo";
-        cout << "grafo.size() = " << grafo.size() << endl;
-        return (-1);
+        if (grafo.size() != N){
+            cout << "Erro na leitura do grafo";
+            cout << "grafo.size() = " << grafo.size() << endl;
+            return (-1);
+        }
+
+        // ------------- PARTE 2 - DFS PARA ACHAR ANOS A1 E A2  -------------
+        // Do enunciad0: A1 (...) representa o primeiro ano no qual as distâncias listadas nas linha anteriores são mutuamente realizáveis (passado em dijkstra)
+        //               A2 (...) representa o primeiro ano a partir do qual é possível chegar em qualquer vila do reino a partir do palácio real.
+        long long int a1 = 0, a2 = 0;
+
+        // Realiza uma busca binária para encontrar o menor ano a partir do qual o grafo se torna conectado
+        // Modifica a2 passada por referência
+        MenorAnoConectavel_BFS(grafo, N, a2, anos);
+
+        // ------------- PARTE 3 - DIJKSTRA PARA ACHAR TEMPO MINIMA DO PALACIO PARA OUTRA VILA (A1 e primeiras N saidas) -------------
+        vector<long long int> tempoMinimoVilaPalacio(N, LINF);
+        Dijkstra(grafo, a1, tempoMinimoVilaPalacio);
+        
+
+        // ------------- PARTE 4 - ARVORE MINIMA DE CUSTOS - PRIM
+        long long int custoMinimoConectar;
+        MST_Prim(grafo, custoMinimoConectar);
+
+        // ------------- PARTE 5 - FINALIZAÇÃO E IMPRENSSÃO DAS SAÍDAS CONFORME ENUNCIADO ------------- 
+        printaVetorTempoMinimo(tempoMinimoVilaPalacio);
+        cout << a1 << endl << a2 << endl << custoMinimoConectar << endl;
+        
+    } catch (...) {
+        cout << "Erro inesperado!" << endl;
     }
-
-    // ------------- PARTE 2 - DFS PARA ACHAR ANOS A1 E A2  -------------
-    // Do enunciad0: A1 (...) representa o primeiro ano no qual as distâncias listadas nas linha anteriores são mutuamente realizáveis (passado em dijkstra)
-    //               A2 (...) representa o primeiro ano a partir do qual é possível chegar em qualquer vila do reino a partir do palácio real.
-    long long int a1 = 0, a2 = 0;
-
-    // Realiza uma busca binária para encontrar o menor ano a partir do qual o grafo se torna conectado
-    // Modifica a2 passada por referência
-    MenorAnoConectavel_BFS(grafo, N, a2, anos);
-
-    // ------------- PARTE 3 - DIJKSTRA PARA ACHAR TEMPO MINIMA DO PALACIO PARA OUTRA VILA (A1 e primeiras N saidas) -------------
-    vector<long long int> tempoMinimoVilaPalacio(N, LINF);
-    Dijkstra(grafo, a1, tempoMinimoVilaPalacio);
-    
-
-    // ------------- PARTE 4 - ARVORE MINIMA DE CUSTOS - PRIM
-    long long int custoMinimoConectar;
-    MST_Prim(grafo, custoMinimoConectar);
-
-    // ------------- PARTE 5 - FINALIZAÇÃO E IMPRENSSÃO DAS SAÍDAS CONFORME ENUNCIADO ------------- 
-    printaVetorTempoMinimo(tempoMinimoVilaPalacio);
-    cout << a1 << endl << a2 << endl << custoMinimoConectar << endl;
-    
     return 0;
 }
 
