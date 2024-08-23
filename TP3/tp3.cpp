@@ -81,13 +81,12 @@ void LeSecoesEManobras(long long int N, long long int K, vector<secao> &secoes, 
 }
 
 void CalculaCombinacoesDasManobras(vector<manobra>& manobras, vector<vector<long long int>>& combinacaoManobras, long long int n){
-    // Calcula as combinações de todas as manobras
-    for (long long int i = 0; i < (1 << n); i++) {
+    for (long long int i = 0; i < (1 << n); i++) {  // Itera sobre todas as combinações possíveis (subconjuntos) de manobras
         combinacaoManobras[i][0] = 0;
-        for (long long int j = 1; j < (1 << n); j++) {
+        for (long long int j = 1; j < (1 << n); j++) {  // Itera sobre todas as combinações possíveis (subconjuntos) de manobras
             long long int somaPontuacoes = 0, qtddManobras = 0;
-            for (long long int k = 0; k < n; k++) {
-                long long int maskK = 1LL << k; // cria uma máscara de bits onde apenas o bit na posição k é definido como 1, e todos os outros bits são definidos como 0
+            for (long long int k = 0; k < n; k++) {  // Itera sobre cada manobra
+                long long int maskK = 1LL << k; // Cria uma máscara de bits para a k-ésima manobra
                 if (j & maskK) { // Verifica se a manobra k está no subconjunto j
                     if (i & maskK) somaPontuacoes += manobras[k].pontuacaoBase / 2; // Repetida em i
                     else somaPontuacoes += manobras[k].pontuacaoBase; // Não repetida
@@ -98,6 +97,7 @@ void CalculaCombinacoesDasManobras(vector<manobra>& manobras, vector<vector<long
         }
     }
 }
+
 
 long long int PD(vector<secao>& secoes, vector<manobra>& manobras, vector<vector<long long int>>& combinacaoManobras, vector<vector<pair<long long int, long long int>>>& memoizationTable, long long int maskAnterior, long long int secaoAtual) {
     // Caso base: todas as seções foram processadas
@@ -117,7 +117,7 @@ long long int PD(vector<secao>& secoes, vector<manobra>& manobras, vector<vector
         if (tempoUsado > secoes[secaoAtual].tempoTravessia) continue;
 
         // Chamada recursiva para calcular a pontuação da próxima seção
-        long long int nextScore = PD( secoes, manobras, combinacaoManobras, memoizationTable, i, secaoAtual + 1);
+        long long int nextScore = PD(secoes, manobras, combinacaoManobras, memoizationTable, i, secaoAtual + 1);
         
         // Calcula a pontuação total para a combinação atual
         long long int pontuacaoAtual = combinacaoManobras[maskAnterior][i] * secoes[secaoAtual].bonificacao + nextScore;
